@@ -89,16 +89,16 @@ class AuthContract(ContractBase):
         self._save(self.fingerprint)
 
     def validate(self, signature_b64):
-        user = User(fingerprint=self._contract_value())
-        result = user.validate(data=self.contract, signature_b64=signature_b64)
+        storage = Storage(fingerprint=self._contract_value())
+        result = storage.validate(data=self.contract, signature_b64=signature_b64)
         if result:
             self.destroy()
-            return user
+            return storage
         else:
             raise KetumServerError('Signature is not valid')
 
 
-class User(object):
+class Storage(object):
     def __init__(self, fingerprint=None, public_key_str=None):
         self.is_registered = False
         if fingerprint is None and public_key_str is None:
@@ -115,20 +115,20 @@ class User(object):
             with open(self._get_path('public_key')) as f:
                 self.public_key_str = f.read()
             with open(self._get_path('master_key')) as f:
-                self.user_master_key = f.read()
+                self.storage_master_key = f.read()
             self.is_registered = True
 
     def register(self):
         if self.is_registered or self.exists():
-            raise KetumServerError('User already registered')
+            raise KetumServerError('Storage already registered')
 
         os.makedirs(self._get_path(''))
 
-        self.user_master_key = Fernet.generate_key()
+        self.storage_master_key = Fernet.generate_key()
         with open(self._get_path('public_key'), 'w') as f:
             f.write(self.public_key_str)
         with open(self._get_path('master_key'), 'w') as f:
-            f.write(self.user_master_key)
+            f.write(self.storage_master_key)
 
         self.is_registered = True
 
@@ -184,11 +184,11 @@ class User(object):
             return self.master_decrypt(f.read())
 
     def master_encrypt(self, data):
-        master_crypter = Fernet(self.user_master_key)
+        master_crypter = Fernet(self.storage_master_key)
         return master_crypter.encrypt(data)
 
     def master_decrypt(self, data):
-        master_crypter = Fernet(self.user_master_key)
+        master_crypter = Fernet(self.storage_master_key)
         return master_crypter.decrypt(data)
 
     def _get_path(self, path):

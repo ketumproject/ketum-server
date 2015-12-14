@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 
-from ketumserverlib import KetumServerError, RegistrationContract, User, init_data_dir, AuthContract
+from ketumserverlib import KetumServerError, RegistrationContract, Storage, init_data_dir, AuthContract
 
 app = Flask(__name__)
 
@@ -42,9 +42,9 @@ def login():
     fingerprint, contract, signature = request.form['auth'].split(':')
     try:
         contract_obj = AuthContract(fingerprint, contract)
-        user = contract_obj.validate(signature)
-        if user:
-            storage_init = user.get_storage_init()
+        storage = contract_obj.validate(signature)
+        if storage:
+            storage_init = storage.get_storage_init()
             return jsonify({
                 'status': 'OK',
                 'storage_init': storage_init,
@@ -61,9 +61,9 @@ def register():
     contract_obj = RegistrationContract(request.form['contract'])
     contract_obj.validate(request.form['public_key_str'], request.form['sign'])
 
-    user = User(public_key_str=request.form['public_key_str'])
+    storage = Storage(public_key_str=request.form['public_key_str'])
 
-    user.register()
+    storage.register()
 
     return jsonify({
         'status': 'OK',
@@ -74,9 +74,9 @@ def register():
 def new_file():
     fingerprint, contract, signature = request.form['auth'].split(':')
     contract_obj = AuthContract(fingerprint, contract)
-    user = contract_obj.validate(signature)
+    storage = contract_obj.validate(signature)
 
-    address = user.new_file()
+    address = storage.new_file()
 
     return jsonify({
         'status': 'OK',
@@ -88,9 +88,9 @@ def new_file():
 def set_file():
     fingerprint, contract, signature = request.form['auth'].split(':')
     contract_obj = AuthContract(fingerprint, contract)
-    user = contract_obj.validate(signature)
+    storage = contract_obj.validate(signature)
 
-    user.set_file(request.form['file_address'], request.form['container'].encode())
+    storage.set_file(request.form['file_address'], request.form['container'].encode())
 
     return jsonify({
         'status': 'OK',
@@ -101,9 +101,9 @@ def set_file():
 def get_file():
     fingerprint, contract, signature = request.form['auth'].split(':')
     contract_obj = AuthContract(fingerprint, contract)
-    user = contract_obj.validate(signature)
+    storage = contract_obj.validate(signature)
 
-    container = user.get_file(request.form['file_address'])
+    container = storage.get_file(request.form['file_address'])
 
     return jsonify({
         'status': 'OK',
@@ -115,9 +115,9 @@ def get_file():
 def set_storage_init():
     fingerprint, contract, signature = request.form['auth'].split(':')
     contract_obj = AuthContract(fingerprint, contract)
-    user = contract_obj.validate(signature)
+    storage = contract_obj.validate(signature)
 
-    user.set_storage_init(request.form['data'].encode())
+    storage.set_storage_init(request.form['data'].encode())
 
     return jsonify({
         'status': 'OK',
