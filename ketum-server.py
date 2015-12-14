@@ -44,10 +44,10 @@ def login():
         contract_obj = AuthContract(fingerprint, contract)
         storage = contract_obj.validate(signature)
         if storage:
-            storage_init = storage.get_storage_init()
+            storage_meta = storage.storage_meta.get_storage_meta()
             return jsonify({
                 'status': 'OK',
-                'storage_init': storage_init,
+                'storage_meta': storage_meta,
             })
     except KetumServerError:
         return jsonify({
@@ -111,13 +111,13 @@ def get_file():
     })
 
 
-@app.route('/set-storage-init', methods=['POST'])
-def set_storage_init():
+@app.route('/set-storage-meta', methods=['POST'])
+def set_storage_meta():
     fingerprint, contract, signature = request.form['auth'].split(':')
     contract_obj = AuthContract(fingerprint, contract)
     storage = contract_obj.validate(signature)
 
-    storage.set_storage_init(request.form['data'].encode())
+    storage.storage_meta.set_storage_meta(request.form['data'].encode())
 
     return jsonify({
         'status': 'OK',

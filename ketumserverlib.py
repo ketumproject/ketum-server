@@ -110,6 +110,7 @@ class Storage(object):
             self.public_key_str = public_key_str
 
         self.fingerprint = fingerprint or sha256hex(self.public_key_str)
+        self.storage_path = os.path.join(settings.DATA_DIR, self.fingerprint)
 
         if self.exists():
             with open(self._get_path('public_key')) as f:
@@ -117,6 +118,7 @@ class Storage(object):
             with open(self._get_path('master_key')) as f:
                 self.storage_master_key = f.read()
             self.is_registered = True
+            self.storage_meta = StorageMeta(self)
 
     def register(self):
         if self.is_registered or self.exists():
@@ -175,14 +177,6 @@ class Storage(object):
         with open(self._get_path(file_address), 'r') as f:
             return file_crypter.decrypt(f.read())
 
-    def set_storage_init(self, data):
-        with open(self._get_path('storage_init'), 'w+') as f:
-            f.write(self.master_encrypt(data))
-
-    def get_storage_init(self):
-        with open(self._get_path('storage_init'), 'r') as f:
-            return self.master_decrypt(f.read())
-
     def master_encrypt(self, data):
         master_crypter = Fernet(self.storage_master_key)
         return master_crypter.encrypt(data)
@@ -192,7 +186,22 @@ class Storage(object):
         return master_crypter.decrypt(data)
 
     def _get_path(self, path):
-        return os.path.join(settings.DATA_DIR, self.fingerprint, path)
+        return os.path.join(self.storage_path, path)
+
+
+class StorageMeta(object):
+    def __init__(self, storage):
+        self.storage = storage
+        self.storage_meta_path = os.path.join(
+            self.storage.storage_path, 'storage_meta')
+
+    def set_storage_meta(self, data):
+        with open(self.storage_meta_path, 'w+') as f:
+            f.write(self.storage.master_encrypt(data))
+
+    def get_storage_meta(self):
+        with open(self.storage_meta_path, 'r') as f:
+            return self.storage.master_decrypt(f.read())
 
 
 def init_data_dir():
