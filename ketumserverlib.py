@@ -113,29 +113,30 @@ class Storage(object):
         self.storage_path = os.path.join(settings.DATA_DIR, self.fingerprint)
 
         if self.exists():
-            with open(self._get_path('public_key')) as f:
+            with open(self.get_path('public_key')) as f:
                 self.public_key_str = f.read()
-            with open(self._get_path('master_key')) as f:
+            with open(self.get_path('master_key')) as f:
                 self.storage_master_key = f.read()
             self.is_registered = True
+            self.file_manager = FileManager(self)
             self.storage_meta = StorageMeta(self)
 
     def register(self):
         if self.is_registered or self.exists():
             raise KetumServerError('Storage already registered')
 
-        os.makedirs(self._get_path(''))
+        os.makedirs(self.get_path(''))
 
         self.storage_master_key = Fernet.generate_key()
-        with open(self._get_path('public_key'), 'w') as f:
+        with open(self.get_path('public_key'), 'w') as f:
             f.write(self.public_key_str)
-        with open(self._get_path('master_key'), 'w') as f:
+        with open(self.get_path('master_key'), 'w') as f:
             f.write(self.storage_master_key)
 
         self.is_registered = True
 
     def exists(self):
-        return os.path.isfile(self._get_path('public_key'))
+        return os.path.isfile(self.get_path('public_key'))
 
     def validate(self, data, signature_b64):
         if not self.is_registered or not self.public_key_str:
@@ -146,37 +147,6 @@ class Storage(object):
         verifier = PKCS1_PSS.new(public_key)
         return verifier.verify(contract_hash, signature)
 
-    def new_file(self):
-        file_address = uuid.uuid4().hex
-
-        file_key = Fernet.generate_key()
-        file_crypter = Fernet(file_key)
-
-        with open(self._get_path(file_address), 'w') as f:
-            f.write(file_crypter.encrypt('empty'))
-
-        with open(self._get_path('%s.key' % file_address), 'w') as f:
-            f.write(self.master_encrypt(file_key))
-
-        self.set_file(file_address, 'empty')
-        return file_address
-
-    def set_file(self, file_address, container):
-        with open(self._get_path('%s.key' % file_address), 'r') as f:
-            file_key = self.master_decrypt(f.read())
-        file_crypter = Fernet(file_key)
-
-        with open(self._get_path(file_address), 'w') as f:
-            f.write(file_crypter.encrypt(container))
-
-    def get_file(self, file_address):
-        with open(self._get_path('%s.key' % file_address), 'r') as f:
-            file_key = self.master_decrypt(f.read())
-        file_crypter = Fernet(file_key)
-
-        with open(self._get_path(file_address), 'r') as f:
-            return file_crypter.decrypt(f.read())
-
     def master_encrypt(self, data):
         master_crypter = Fernet(self.storage_master_key)
         return master_crypter.encrypt(data)
@@ -185,9 +155,44 @@ class Storage(object):
         master_crypter = Fernet(self.storage_master_key)
         return master_crypter.decrypt(data)
 
-    def _get_path(self, path):
+    def get_path(self, path):
         return os.path.join(self.storage_path, path)
 
+
+class FileManager(object):
+    def __init__(self, storage):
+        self.storage = storage
+
+    def new_file(self):
+        file_address = uuid.uuid4().hex
+
+        file_key = Fernet.generate_key()
+        file_crypter = Fernet(file_key)
+
+        with open(self.storage.get_path(file_address), 'w') as f:
+            f.write(file_crypter.encrypt('empty'))
+
+        with open(self.storage.get_path('%s.key' % file_address), 'w') as f:
+            f.write(self.storage.master_encrypt(file_key))
+
+        self.set_file(file_address, 'empty')
+        return file_address
+
+    def set_file(self, file_address, container):
+        with open(self.storage.get_path('%s.key' % file_address), 'r') as f:
+            file_key = self.storage.master_decrypt(f.read())
+        file_crypter = Fernet(file_key)
+
+        with open(self.storage.get_path(file_address), 'w') as f:
+            f.write(file_crypter.encrypt(container))
+
+    def get_file(self, file_address):
+        with open(self.storage.get_path('%s.key' % file_address), 'r') as f:
+            file_key = self.storage.master_decrypt(f.read())
+        file_crypter = Fernet(file_key)
+
+        with open(self.storage.get_path(file_address), 'r') as f:
+            return file_crypter.decrypt(f.read())
 
 class StorageMeta(object):
     def __init__(self, storage):

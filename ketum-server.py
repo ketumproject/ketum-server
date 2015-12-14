@@ -76,7 +76,7 @@ def new_file():
     contract_obj = AuthContract(fingerprint, contract)
     storage = contract_obj.validate(signature)
 
-    address = storage.new_file()
+    address = storage.file_manager.new_file()
 
     return jsonify({
         'status': 'OK',
@@ -90,7 +90,7 @@ def set_file():
     contract_obj = AuthContract(fingerprint, contract)
     storage = contract_obj.validate(signature)
 
-    storage.set_file(request.form['file_address'], request.form['container'].encode())
+    storage.file_manager.set_file(request.form['file_address'], request.form['container'].encode())
 
     return jsonify({
         'status': 'OK',
@@ -103,7 +103,7 @@ def get_file():
     contract_obj = AuthContract(fingerprint, contract)
     storage = contract_obj.validate(signature)
 
-    container = storage.get_file(request.form['file_address'])
+    container = storage.file_manager.get_file(request.form['file_address'])
 
     return jsonify({
         'status': 'OK',
