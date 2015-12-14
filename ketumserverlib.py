@@ -166,24 +166,21 @@ class FileManager(object):
     def new_file(self):
         file_address = uuid.uuid4().hex
 
-        file_key = Fernet.generate_key()
-        file_crypter = Fernet(file_key)
-
         with open(self.storage.get_path(file_address), 'w') as f:
-            f.write(file_crypter.encrypt('empty'))
+            pass
 
         with open(self.storage.get_path('%s.key' % file_address), 'w') as f:
+            file_key = Fernet.generate_key()
             f.write(self.storage.master_encrypt(file_key))
 
-        self.set_file(file_address, 'empty')
         return file_address
 
     def set_file(self, file_address, container):
         with open(self.storage.get_path('%s.key' % file_address), 'r') as f:
             file_key = self.storage.master_decrypt(f.read())
-        file_crypter = Fernet(file_key)
 
         with open(self.storage.get_path(file_address), 'w') as f:
+            file_crypter = Fernet(file_key)
             f.write(file_crypter.encrypt(container))
 
     def get_file(self, file_address):
@@ -193,6 +190,7 @@ class FileManager(object):
 
         with open(self.storage.get_path(file_address), 'r') as f:
             return file_crypter.decrypt(f.read())
+
 
 class StorageMeta(object):
     def __init__(self, storage):
