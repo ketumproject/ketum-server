@@ -111,6 +111,36 @@ def get_file():
     })
 
 
+@app.route('/destroy-file', methods=['POST'])
+def destroy_file():
+    fingerprint, contract, signature = request.form['auth'].split(':')
+    contract_obj = AuthContract(fingerprint, contract)
+    storage = contract_obj.validate(signature)
+
+    file_addresses = request.form['file_addresses'].split(',')
+
+    for file_address in file_addresses:
+        file_address = file_address.strip()
+        storage.file_manager.destroy_file(file_address)
+
+    return jsonify({
+        'status': 'OK',
+    })
+
+
+@app.route('/destroy-storage', methods=['POST'])
+def destroy_storage():
+    fingerprint, contract, signature = request.form['auth'].split(':')
+    contract_obj = AuthContract(fingerprint, contract)
+    storage = contract_obj.validate(signature)
+
+    storage.destroy_storage()
+
+    return jsonify({
+        'status': 'OK',
+    })
+
+
 @app.route('/set-storage-meta', methods=['POST'])
 def set_storage_meta():
     fingerprint, contract, signature = request.form['auth'].split(':')

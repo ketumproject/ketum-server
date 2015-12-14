@@ -1,12 +1,14 @@
 import os
+import subprocess
 import uuid
-
 import base64
+
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
 from cryptography.fernet import Fernet
 from werkzeug.contrib.cache import MemcachedCache
+
 import settings
 from utils import sha256hex, sha256
 
@@ -158,6 +160,17 @@ class Storage(object):
     def get_path(self, path):
         return os.path.join(self.storage_path, path)
 
+    def destroy_storage(self):
+        master_key_path = self.get_path('master_key')
+
+        # Secure delete the master key, so the storage will be unreachable
+        subprocess.check_call(['srm', '-r', master_key_path])
+
+        # Mark the storage as garbage by adding underscore
+        storage_path = os.path.join(settings.DATA_DIR, self.fingerprint)
+        new_storage_path = os.path.join(settings.DATA_DIR, '_%s' % self.fingerprint)
+        os.rename(storage_path, new_storage_path)
+
 
 class FileManager(object):
     def __init__(self, storage):
@@ -190,6 +203,19 @@ class FileManager(object):
 
         with open(self.storage.get_path(file_address), 'r') as f:
             return file_crypter.decrypt(f.read())
+
+    def destroy_file(self, file_address):
+        key_path = self.storage.get_path('%s.key' % file_address)
+        file_path = self.storage.get_path(file_address)
+
+        if os.path.exists(key_path):
+            # Secure delete the file key, so the file will be unreachable
+            subprocess.check_call(['srm', '-r', key_path])
+
+        if os.path.exists(file_path):
+            # Mark the file as garbage by adding underscore
+            new_file_path = self.storage.get_path('_%s' % file_address)
+            os.rename(file_path, new_file_path)
 
 
 class StorageMeta(object):
