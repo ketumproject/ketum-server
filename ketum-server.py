@@ -123,20 +123,6 @@ def set_storage_init():
         'status': 'OK',
     })
 
-#
-# @app.route('/get-storage-init', methods=['POST'])
-# def get_storage_init():
-#     fingerprint, contract, signature = request.form['auth'].split(':')
-#     contract_obj = AuthContract(fingerprint, contract)
-#     user = contract_obj.validate(signature)
-#
-#     data = user.get_storage_init()
-#
-#     return jsonify({
-#         'status': 'OK',
-#         'data': data,
-#     })
-
 
 if __name__ == '__main__':
     init_data_dir()
