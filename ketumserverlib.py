@@ -179,11 +179,13 @@ class FileManager(object):
     def new_file(self):
         file_address = uuid.uuid4().hex
 
+        file_key = Fernet.generate_key()
+        file_crypter = Fernet(file_key)
+
         with open(self.storage.get_path(file_address), 'w') as f:
-            pass
+            f.write(file_crypter.encrypt(''))
 
         with open(self.storage.get_path('%s.key' % file_address), 'w') as f:
-            file_key = Fernet.generate_key()
             f.write(self.storage.master_encrypt(file_key))
 
         return file_address
